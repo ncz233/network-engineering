@@ -1,0 +1,9 @@
+开启前提
+en
+conf t
+no ip domain-lo
+lin con 0 
+exec-t 0 0
+logg syn
+exit
+ho 
