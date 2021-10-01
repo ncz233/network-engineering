@@ -1,0 +1,40 @@
+三层交换机配置vtp(开trunk)
+vl d
+vtp dom 名字
+vl N
+
+ 三层交换机配置虚拟接口(三层交换机没有子接口，功能与前一个一样)
+int vl (vl号)
+ip add IP地址 网段
+no sh
+
+三层交换机开启路由功能
+ip routing(反之 no ip routing)
+三层交换机接口变成路由器接口
+no sw(反之 sw)
+三层交换机开启stp功能
+
+
+三层交换机配置trunk链路
+int f 0/N
+sw trunk en do
+sw mo trunk
+
+三层交换机开启stp树
+sp vl vlan号 (反之加no)
+
+三层交换机stp树
+sp vl vlan号 p ? (问他可以配置的id)
+sp vl vlan号 r p (主)
+sp vl vlan号 r s (备)
+
+三层交换机虚拟交换机
+int vl vlan号
+st vlan号 ip IP地址
+三层交换机虚拟交换机优先级
+int vl vlan号
+st vlan号 pri 数字 (优先级谁高选谁)
+占优先
+st vlan号 tra f M/n(监视那个接口) 数字(崩了降多少级一定要低于备份)
+开启优先权功能
+st vlan号 pree
