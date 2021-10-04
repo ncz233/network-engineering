@@ -43,4 +43,183 @@ sh fla
 copy fla tftp
 cop fl f
 
-网络多条链路 待更新
+网络多条约待更新
+扩展
+脚本(路由器、交换机)
+en
+conf t
+no ip domain-lo
+li c 0 
+exe 0 0
+logg syn
+exit
+ho 
+
+
+路由器
+int f 0/n
+ip add IP地址
+no sh
+
+交换机
+int v1
+ip add IP地址
+no sh
+
+静态路由
+ip route 网段 掩码 下一跳
+查看静态路由
+sh ip ro 网段 掩码 下一跳 (特权模式)
+删除静态路由
+no ip ro 目标静态路由
+
+未保存的配置
+sh  run
+保存的配置
+sh  star
+保存当前配置
+wr =copy run star
+
+配置Console 口密码
+（config）#line   con  0
+（config-line）# pass 密码值
+（config-line）# login
+设置特权密码
+（config）#  ena pass 密码值
+（config）# ena secret 密码值（加密的密码，如果一起设置，加密的特权大）
+加密密码
+（config）#serv pass （密码加密显示）
+
+路由器的密码破解
+按Ctrl  +  Break 键中断IOS的加载
+Rommom>confreg  0x2142
+重启
+Rommom> reset
+因为配置文件不只只有密码信息，还有其他的重要信息
+Router # copy star run （保存的覆盖未保存的）
+重新设置密码
+配置寄存器值改回原值并保存
+（config）# config-register   0x2102
+
+交换机的密码破解
+1、重启交换机按Mode键终止IOS的加载进入“Switch ：”模式（专门做故障恢复的模式）
+初始化Flash   Switch ：flash_init
+2、将config.text文件改名
+Switch：rename  flash：config.text  flash：config.任意
+重启，进入后为无密码状态
+Switch：boot
+将配置文件改回原名
+Switch# rename  flash：config.任意  flash：config.text
+手动将配置文件加载到系统内存中
+Switch# copy   flash：config.textsystem:running-config
+重新设置新的密码并保存，新密码生效，下次重新启动也需要密码
+
+设备的远程管理    （路由器和交换机同样）
+（config）#ip  de 网关的IP地址
+开启设备的远程功能，并配置设备的远程登录密码
+VTY：虚拟类型终端 VTY必须配置密码
+（config）# line    vty （按照控设备接口）
+（config-line）# pass 密码值
+（config-line）# login
+（config-line）# ena pass 密码值  （也可以是 ena se 密码值）
+
+IOS的备份、升级和恢复
+IOS的命名规则：AAAAA-BBBB-CC-DDDD.EE
+AAAAA：表示该IOS所适用的硬件平台
+BBBB：是IOS的特性集（一共8个特性）
+CC：表示IOS软件的运行方式和压缩格式
+第一个 C代表其运行在哪个内存上： f 代表运行在Flash上； m 代表运行在RAM上；r代表运行在ROM上
+第二个C代表其压缩格式：z 代表zip压缩； w 代表stac压缩
+DDDD 代表其系统版本；
+EE：代表其后缀（一般是.bin 的扩展名）
+
+IOS的备份和升级
+通过TFTP服务器备份IOS
+备份：在设备上执行命令：Switch# copy   flash： TFTP（根据提示依次输入源IOS名称；目标主机IP地址即可，“回车”完成备份）
+升级：需要在本机上准备高版本的IOS；在设备上执行命令
+Switch# copy  TFTP：flash
+
+通过FTP服务器备份和升级
+Switch（config）# ip   ftp   username   用户名（设置登录用户）
+Switch（config）# ip   ftp   password   密码值（设置密码）
+备份： Switch# copy   flash： FTP
+升级：Switch# copy    Ftp：  flash   （需要提前准备高版本的IOS放在目录中）
+
+IOS的恢复
+交换机启动后加载IOS失败，发现设备不存在IOS，直接进入了Switch：模式
+对交换机的IOS做初始化操作  Switch：flash_init
+准备好完整的IOS文件，通过Xmodem协议传输IOS文件
+Switch： copy  Xmodem： flash：IOS完整的文件名回车执行；当设备配置界面不断出现“C”，说明设备做好接收IOS文件的准备
+通过CRT软件的“传输”找到“发送Xmodem”找到“IOS的源文件”进行发送操作
+等待传输完成
+
+li vty 0 3   (远程控制)
+pass 123
+login
+ena se 123
+
+dir fl  （备份）
+cop fl t
+
+ARP攻击与欺骗的防护
+静态绑定MAC地址
+Arp  -s   IP地址   MAC地址（方法一）
+Netsh   interface   ipv4   set   neighbors   接口编号   IP地址   MAC地址（方法二）
+查看接口编号的命令：netsh  interface  ipv4  show   neighbors
+
+设备上绑定
+路由器上绑定：  Router（config）# arp  IP地址    MAC地址arpa   接口名称
+交换机上绑定：  Switch（config）#arp   IP地址   MAC地址 arpa   接口名称
+
+通过安装ARP防火墙来抵御ARP攻击与欺骗
+查找攻击主机
+第一种情况：如果攻击主机使用的是真实的MAC地址进行攻击，可根据公司的设备登记表直接查到攻击主机
+第二种情况：如果攻击主机使用的是虚假的MAC地址进行攻击，可通过命令查找到该虚假MAC地址所属的交换机端口，该交换机端口下所连接的设备就是攻击主机
+Switch# show   mac   address-table  address   虚假的MAC地址
+
+VLAN的范围
+交换机最多支持4096 个VLAN
+系统保留的VLAN： 0 和4095，仅供系统使用，用户不能查看和使用
+Cisco的默认VLAN： VLAN1 ；默认情况下所有端口都属于VLAN1，用户能使用但是不能删除
+用户可以创建和使用的VLAN： 2 ~1001   （可创建、使用、删除）
+Cisco的默认VLAN，用于FDDI和令牌环网络，用户不能删除： 1002 ~1005 
+系统保留，用户不能查看和使用： 1006 ~1024
+扩展使用： 1025 ~4094
+
+VLAN两种创建方法
+数据库模式创建
+Switch# vlan   database     （进入数据库模式）
+Switch（vlan）# vlanvlan的ID号    name    名字（创建VLAN并命名）（name 是可选项）
+Switch（vlan）# exit  （更新VLAN的数据库并退出）
+Switch# show   vlan   brief    （查看VLAN的配置信息）
+全局模式创建
+Switch（config）# vlanvlan的ID号（创建VLAN）
+Switch（config-vlan）# name   名字（命名VLAN，该命令为可选项）
+
+将接口加入VLAN
+单接口加入VLAN
+Switch（config）# int   f0/1  （进入1号接口）
+Switch（config-if）# switchport    mode   access    （将接口定义为二层接入模式）
+Switch（config-if）# switchport   access  vlanvlan的ID号（将接口加入该VLAN）
+多个连续接口加入同一个VLAN：
+Switch（config）# int   range   f0/5 – 10    （同时进入5 ~10 号接口）
+Switch（config-if-range）# switchport   mode   access   （把5~10号接口都变成access模式）
+Switch（config-if-range）#switchport  access  vlanvlan的ID号（将这几个接口同时加入一个VLAN）
+
+VLAN的删除
+数据库模式删除Switch（vlan）# no vlanvlan的ID 号
+全局模式删除     Switch（config）# no   vlanvlan的ID号
+将接口从VLAN上移除： Switch（config-if）# no   switchport   access vlanvlan的ID号（默认情况下，该接口又属于VLAN1）
+将接口恢复至默认配置
+Switch（config）# default   int接口的编号（在PT模拟器上不支持，真实设备支持）
+
+Trunk的配置
+选择封装类型
+Switch（config-if）# switchport   trunk   isl（私有）/ dot1q（公有） /nonegiate（二层交换机上不需要配置该命令，三层上需要）
+配置接口模式
+Switch（config-if）#switchport   mode  desirable（主动）/ auto（被动）/ trunk（中继）/access （接入）（实际应用中直接配置为Trunk即可）
+指定Native VLAN的命令（默认的Native VLAN为VLAN1）
+Switch（config-if）# switchport  trunk  nativevlanvlan的ID号
+在Trunk链路上移除或添加某个VLAN
+Switch（config-if）#switchport   trunk  allowed   vlan   remove（移除）/ add （添加）vlan的ID号
+
