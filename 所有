@@ -1,0 +1,106 @@
+一定要开启(no sh)!!!!!!!!!!!!!!!!!!!!!!!!!
+
+en
+conf t
+no ip domain-lo
+lin con 0 
+exec-t 0 0
+logg syn
+exit
+ho 
+
+配置route
+ip route IP网段地址 掩码 下一跳 优先级(可填浮动route)
+
+配置trunk接口
+int r f0/N-M
+sw m t
+
+配置vtp(前提配置trunk接口)           三层交换机配置vtp(开trunk)
+vtp dom 名字                               vl d
+vtp mo s\c\t                                vtp dom 名字
+vl d                                              vl N
+vl N
+
+二层交换机配置子接口                     三层交换机配置虚拟接口(三层交换机没有子接口，功能与前一个一样)
+int f0/0.N                                      int vl (vl号)
+en do (vl口) na(是ping交换机)         ip add IP地址 网段
+ip add 地址                                    no sh
+
+路由器配置dhcp地址池
+ip dh po (vl口)       ip dh ex ip地址 ip地址
+de 网关地址
+ne  ip地址 掩码
+dns ip地址
+
+针对设备开启Telenet 功能，并且只允许网管部门远程管理
+SW1(config)#access-list 1 permit 192.168.10.0  0.0.0.255     允许192.168.10.0 网段
+SW1(config)#username benet password test                     配置用户名是benet 密码是test
+SW1(config)#line vty 0 4                                     进入远程登录设置
+SW1(config-line)#access-class 1 in                           允许列表1 中的网段可以远程
+SW1(config-line)#login local                                 调用上面配置的用户名和密码
+//但是还是需要en特权的密码。
+远程控制
+li vty ?  (问他有多少接口)
+pass 123
+login
+ena se 123
+
+ftp/tftp备份到服务器
+sh fla
+copy fla tftp
+cop fl f
+
+三层交换机开启路由功能
+ip routing(反之 no ip routing)
+三层交换机接口变成路由器接口
+no sw(反之 sw)
+三层交换机开启stp功能
+
+
+三层交换机配置trunk链路
+int f 0/N
+sw trunk en do
+sw mo trunk
+
+三层交换机开启stp树
+sp vl vlan号 (反之加no)
+
+三层交换机stp树
+sp vl vlan号 p ? (问他可以配置的id)
+sp vl vlan号 r p (主)
+sp vl vlan号 r s (备)
+
+三层交换机虚拟交换机
+int vl vlan号
+st vlan号 ip IP地址
+三层交换机虚拟交换机优先级
+int vl vlan号
+st vlan号 pri 数字 (优先级谁高选谁)
+占优先
+st vlan号 tra f M/n(监视那个接口) 数字(崩了降多少级一定要低于备份)
+开启优先权功能
+st vlan号 pree
+
+访问控制列表的基本概述和标准访问控制列表的基本配置：就是过滤可以让谁过去
+access-list    表号（1~99）   permit(让过去)  / deny(不让过去) 源网段    子网掩码的反码
+关键字
+原网段后面加：host   代表唯一的主机       Any = 所有网络 = 0.0.0.0  255.255.255.255
+删除访问控制列表
+Router（config）# no   access-list    表号
+把访问控制列表应用于接口上
+Router（config-if）# ip   access-list   表号   in  / out   （如果是入口用in；如果是出口用out）
+查看访问控制列表
+Router# show   access-lists
+
+访问控制列表2
+Router（config）# access-list  表号(100~199） permit(允许) /deny(拒绝)  协议类型(IP 表示所有、TCP(访问网站) 、UDP、ICMP(ping)） 源 IP地址 源子网掩码反码  目标IP地址  目标的反码  
+lt （小于） 、gt（大于）、 eq（等于）、 neq（不等于） 端口号
+默认隐含一条拒绝所有：  Router（config）# access-list 表号  deny  ip  any  any
+
+建立静态转换
+Router（config）# ip  nat  inside  source static  内部局部地址  内部全局地址 
+在内部和外部口上启用NAT
+内部接口   Router（config-if）# ip  nat  inside  
+外部接口   Router (config-if)#  ip  nat   outside
+
