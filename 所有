@@ -104,3 +104,24 @@ Router（config）# ip  nat  inside  source static  内部局部地址  内部�
 内部接口   Router（config-if）# ip  nat  inside  
 外部接口   Router (config-if)#  ip  nat   outside
 
+动态地址池轮巡
+1、定义一条ACL允许内部网络访问外部网络的
+2、定义合法的IP地址池
+Router（config）#  ip  nat  pool  地址池名字  开始IP  结束IP  netmask  子网掩码
+3、实现网络地址转换
+Router（config）# ip  nat  inside  source  list  acl的列表号  pool  地址池名字
+
+直接将内部地址复用到外部接口上的配置
+1、配置内、外接口的地址
+2、定义访问控制列表
+3、定义合法的地址池   （省略，直接定义在接口上，所以可以省略）
+4、设置复用
+Router（config）# ip  nat  inside  source  list  列表编号  interface  外部接口名称 overlord 
+5、启用NAT （外部和内部都启用）
+6、默认路由
+
+查看NAT的配置信息
+Router# sh  ip  nat  translations   
+跟踪NAT的操作
+Router#  debug  ip  nat
+
