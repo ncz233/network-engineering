@@ -16,7 +16,7 @@ ip route IP网段地址 掩码 下一跳 优先级(可填浮动route)
 int r f0/N-M
 sw m t
 
-配置vtp(前提配置trunk接口)           三层交换机配置vtp(开trunk)
+配置vtp(前提配置trunk接口)           gns3三层交换机配置vtp(开trunk)
 vtp dom 名字                               vl d
 vtp mo s\c\t                                vtp dom 名字
 vl d                                              vl N
@@ -56,7 +56,9 @@ ip routing(反之 no ip routing)
 三层交换机接口变成路由器接口
 no sw(反之 sw)
 三层交换机开启stp功能
-
+spanning-tree   vlan   vlan的ID号
+关闭
+no   spanning-tree   vlan   vlan的ID号
 
 三层交换机配置trunk链路
 int f 0/N
@@ -73,14 +75,14 @@ sp vl vlan号 r s (备)
 
 三层交换机虚拟交换机
 int vl vlan号
-st vlan号 ip IP地址
+st vlan号 ip IP地址(虚拟地址，一定要和这个vlan在同一网段，活跃和备份都要配置)
 三层交换机虚拟交换机优先级
 int vl vlan号
 st vlan号 pri 数字 (优先级谁高选谁)
-占优先
+端口追踪功能（针对路线出现故障）
 st vlan号 tra f M/n(监视那个接口) 数字(崩了降多少级一定要低于备份)
 开启优先权功能
-st vlan号 pree
+st vlan号 pree (活跃和备份都要配置)
 
 访问控制列表的基本概述和标准访问控制列表的基本配置：就是过滤可以让谁过去
 access-list    表号（1~99）   permit(让过去)  / deny(不让过去) 源网段    子网掩码的反码
@@ -113,7 +115,7 @@ Router（config）# ip  nat  inside  source  list  acl的列表号  pool  地址
 
 直接将内部地址复用到外部接口上的配置
 1、配置内、外接口的地址
-2、定义访问控制列表
+2、定义acl访问控制列表
 3、定义合法的地址池   （省略，直接定义在接口上，所以可以省略）
 4、设置复用
 Router（config）# ip  nat  inside  source  list  列表编号  interface  外部接口名称 overlord 
@@ -124,4 +126,62 @@ Router（config）# ip  nat  inside  source  list  列表编号  interface  外�
 Router# sh  ip  nat  translations   
 跟踪NAT的操作
 Router#  debug  ip  nat
+
+动态route 
+route rip
+net 这个路由器知道的网段ip地址
+//尽量用版本2 因为是版本1 的升级版兼容性高 资源占用少，比版本1什么地方都强
+1，启用版本2
+Router（config-router）# version   2 
+2、关闭自动汇总
+Router（config-router）# no  auoto-summary
+
+router ospf
+配置前提，需要配置两端端口号
+需要配置loo，也可以不用配置
+int lo (号)
+启动OSPF路由协议
+router ospf (进程号)
+宣告OSPF的接口及其所处区域
+Router（config-router）# network  网段地址  子网掩码的反码   area   区域ID （如果是单区域都是area 0）
+末梢配置
+Router（config-router）# area   区域号  stub  （配置为末梢区域）
+完全末梢
+Router（config-router）#area   区域号  stub  no-summary （配置为完全末梢）
+注意：这个实在abr上配置的，还要在区域内的路由器上配置
+Router（config-router）# area   区域号  stub  （配置为末梢区域）
+不管是末梢还是完全末梢都要配
+配置NSSA区域（非纯末梢区域）
+Router（config-router）# area   区域ID号   NSSA 
+Router（config-router）#area   区域ID号   NSSA  no-summary （把区域配置为非纯完全末梢区域）
+
+不同模式下的通信
+1、在OSPF中注入默认路由
+Router（config-router）# default-information   originate  
+简写：de or
+2、在OSPF中注入静态路由
+Router（config-router）# redistribute    static     subnets
+简写：red st su
+3、在OSPF中注入直连路由
+Router（config-router）# redistribute   connected   subnets
+简写：red co su
+4、在OSPF中注入RIP路由
+Router（config）# router  ospf   进程号
+Router（config-router）# redistribute    rip   subnets   （没有指定Metric值，默认代价是20）
+简写：red rip su
+1、在RIP中注入OSPF路由
+Router（config）# router   rip 
+Router（config-router）# redistribute   ospf   进程号   metric  值 （注意：在RIP路由中注入OSPF路由，一定要指定Metric 值，否则RIP无法学习到OSPF的路由条目）
+简写：red ospf me 值
+
+地址汇总
+区域间路由汇总 ： （配置在ABR路由器上）
+Router（config-router）# area   区域ID号  range   汇总后的网段   汇总后子网掩码
+外部路由汇总：  （配置ASBR路由器）
+Router（config-router）# summary-address  汇总后的网段地址   汇总后的子网掩码
+
+虚拟链路：与骨干连接
+abr上配置
+router ospf 号
+area    号(要穿越的区域id号)   virtual-link   目标路由器的router-id口
 
