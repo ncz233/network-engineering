@@ -185,3 +185,30 @@ abr上配置
 router ospf 号
 area    号(要穿越的区域id号)   virtual-link   目标路由器的router-id口
 
+ASA防火墙
+ciscoasa(config)# ho ASA (同路由器)
+特权模式密码
+ASA(config)# enable password  密码 (同路由器)
+远程登录密码
+ASA(config)# passwd 密码 (与路由器不同)
+进入接口
+ASA(config)# int e0/0 (进入物理接口)
+接口起名字
+ASA(config-if)# nameif 名字
+更改优先级
+ASA(config-if)# security-level (默认情况下是100)
+接口配置地址
+ASA(config-if)# ip add 192.168.10.254 255.255.255.0 (同路由器)
+ACL配置 (防火墙的ACL与路由器配置的不同，防火墙的掩码是正常的掩码)
+扩展ACL：ASA(config)# access-list 给ACL起名字 permit ip host 指定地址 host 指定地址
+{
+标准ACL：ASA(config）# access-list   名字   permit或 deny  网段    掩码 （正常的掩码 ）
+扩展ACL：ASA(config）# access-list   名字   permit或 deny  协议   源网段   源掩码   目标网段   目标掩码    端口号
+}
+ACL配置到接口上
+ASA(config)# access-group ACL的名字 (in/out) interface 防火墙接口的名字
+
+
+
+
+
