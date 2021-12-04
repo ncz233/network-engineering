@@ -199,6 +199,7 @@ ASA(config-if)# nameif 名字
 ASA(config-if)# security-level (默认情况下是100)
 接口配置地址
 ASA(config-if)# ip add 192.168.10.254 255.255.255.0 (同路由器)
+
 ACL配置 (防火墙的ACL与路由器配置的不同，防火墙的掩码是正常的掩码)
 扩展ACL：ASA(config)# access-list 给ACL起名字 permit ip host 指定地址 host 指定地址
 {
@@ -208,7 +209,33 @@ ACL配置 (防火墙的ACL与路由器配置的不同，防火墙的掩码是正
 ACL配置到接口上
 ASA(config)# access-group ACL的名字 (in/out) interface 防火墙接口的名字
 
+其他
+1、保存配置   ASA #  write  = wr  = copy   running-config   startup-config 
+2、清除所有配置： ASA(config)# clear configure all
+3、清除所有的ACL ： ASA(config)# clear configure  access-list 
+4、清除某一条 ACL ： ASA(config)# clear configure  access-list   ACL 的名字
+5、删除 startup-config   ASA#  write  erasa
+6、查询路由表：  ASA# show  route
 
+ASA路由配置
+静态路由配置：
+往内部接口的静态路由： ASA（config）# route   inside   目标网段    目标掩码   下一跳地址
+往外部接口的静态路由： ASA（config）# route   outside   目标网段   目标掩码   下一跳地址
+默认路由配置：  ASA(config) # route   outside  0  0   下一跳地址
 
-
-
+ASA远程配置
+支持三种远程接入方式： Telnet  SSH  ASDM 
+1、 Telnet   管理方式不够安全，默认是禁止从外网使用Telnet的方式接入
+ASA(config)# telnet 192.168.10.0 255.255.255.0 inside    （配置允许内部网段的192.168.10.0 进行Telnet 接入）
+ASA(config)# telnet 192.168.10.100 255.255.255.255 inside    （仅允许主机地址是192.168.10.100 的进行Telnet连接，其他的全部不允许）
+ASA(config)# telnet 0 0 inside    （特殊命令；允许所有的内部网段使用Telnet接入）
+2、SSH   可以安全的对ASA 进行远程管理 （一般用于外网）  （也可用于内网）
+(1)配置主机名和域名
+ASA(config)# ho ASA    配置主机名
+ASA(config)# domain-name TSZ223.com   配置域名
+(2)生成密钥对
+ASA(config)# crypto key generate rsa modulus 1024
+3）、配置允许SSH接入 
+ASA(config)# ssh 0 0 outside   （允许所有的外部网段进行SSH接入）
+4）、设置SSH版本 （默认版本是 1，连接的时就应该用ssh1）
+ASA(config)# ssh version 2   （把SSH版本改成2）
