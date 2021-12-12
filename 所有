@@ -239,3 +239,101 @@ ASA(config)# crypto key generate rsa modulus 1024
 ASA(config)# ssh 0 0 outside   （允许所有的外部网段进行SSH接入）
 4）、设置SSH版本 （默认版本是 1，连接的时就应该用ssh1）
 ASA(config)# ssh version 2   （把SSH版本改成2）
+
+ ASA的默认六条访问规则
+DMZ区域：位于企业内网和外部网络之间的一个区域 （用来放置一些必须公开的服务器） （安全级别一般设置为 50 ）
+六条规则：1、 inside可以访问 DMZ 和outside 区域
+          2、outside 默认不能访问inside和DMZ区域
+          3、DMZ可以访问Outside但是不能访问inside
+ 注意：如果想要实现外网访问DMZ 可通过ACL 的配置实现
+
+ASA 的NAT 应用
+查看ASA防火墙转换条目
+ASA# sh xlate detail
+ASA #  clear xlate  （可以删除转换条目，但是不能删除静态的）
+
+动态NAT(将一组IP地址转换为指定地址池中的IP地址)
+指定需要转换的网段
+ASA(config)# nat (网段所在的接口名称(ASA是由接口名字的))   nat ID号   转换的网段   掩码
+定义全局地址池 （转换后的地址池）
+ASA（config）#  global   （转换后接口名称）   NAT ID 号  开始地址-结束地址
+特殊的 ： 为防火墙中所有inside 区域做转换：   ASA（config） # nat  （inside） 1  0  0 
+
+动态PAT(将一组地址转换成一个地址（多转一）)
+指定需要转换的网段
+ASa(config)# nat (网段所在的接口名称)   nat ID号   转换的网段   掩码
+定义全局地址池（转换后的地址池）
+ASA（config）#  global   （转换后接口名称）   NAT ID 号   转换后唯一地址(没有掩码)
+也可以将内部地址直接转换到外部的接口上
+ASA（config）# global  （转换后接口名称）  NAT ID 号  interface
+
+静态NAT  （将一个内部地址转换为一个外部地址，一对一的转换，其主要作用是保证内部地址的安全）
+静态转换
+ASA（config）#  static  （需要转换的接口名称，转换后所在接口名称） 转换后的全局IP    转换前的本地IP
+静态转换后，外网如果想访问内网的转换前的地址，必须写一条ACL ，该ACL的目标应该指向转换后的IP
+ASA(config)# access-list 名字 permit 协议(ip) host 主机 host 转换后的地址
+
+静态PAT(将多个内网地址转换到一个公网地址，通过端口号去区分不同的服务)
+基本语法结构
+ASA（config）#  static  （转换前所在区域名称， 转换后所在区域名称）  协议   转换后地址  端口或服务    转换前地址   端口或服务
+配置转换条目后，如果外网想访问内部服务器，必须设置ACL； ACL的目标地址应该指向转换后的地址
+ASA(config)# access-list 名字 permit 协议(ip) host 主机 host 转换后的地址
+
+ASA的NAT 控制
+ASA 防火墙从7.0 版本后提供了一个NAT 控制开关（nat-control），该开关默认是禁用的
+作用：
+关闭该开关 ，  NAT  规则不是必须   （可以不做NAT转换）
+开启该开关，NAT规则是必须的       （必须做NAT转换）
+
+NAT豁免
+作用：当启用NAT控制时，NAT规则是必须的，而某些流量又不能做NAT规则，可通过NAT豁免给不做NAT规则的特殊流量放行
+定义一条ACL
+ASA（config）#  access-list 名字 extended permit 协议(ip) host 被豁免主机 host 访问目标主机
+做豁免
+ASA(config)# nat (被豁免主机在那个口) 0 access-list 豁免acl名字
+
+url过滤
+先有url，才能过滤
+先创建access表，要访问网站的，没有它访问网站不了
+ASA(config)# access-list 名字(aaa) permit tcp 网段 掩码 any eq www  (允许访问所有外网的www服务)
+在建立一个映射
+创建一个名字叫 “a1” 的类映射，随之进入子模式，并进入里面
+ASA(config)# class-map 名字(a1)
+ASA(config-cmap)#
+在类映射中带入 刚刚创建ACL 中的允许的流量
+ASA(config-cmap)# match access-list acl名字(aaa)
+第一个映射创建完，退出到全局模式
+ASA(config-cmap)# exit
+创建了一个名称叫“url1” 的正则表达式，识别的扩展名是“.kkgame.com”
+ASA(config)# regex 名字(url1) "\.kkgame\.com"
+创建了一个名称“bbb” 的 ，类型是 “识别任何一个流量的” 类映射，并进入里面
+ASA(config)# class-map type regex match-any 名字(bbb)
+ASA(config-cmap)#
+把刚刚创建的正则表达式“url1” 带入当前这个类映射
+ASA(config-cmap)# match regex 表达式名字(url1)
+第二个类映射完成，该类映射是用来识别扩展名
+创建一个名称是“ccc”，类型是识别 “http” 这种流量的 类映射,并进入里面
+ASA(config)# class-map type inspect 识别协议(http) 名字(ccc)
+ASA(config-cmap)#
+将http 请求报文头部中url 扩展名是 “.kkgame.com " 这种类型的映射带入到当前的映射
+ASA(config-cmap)# match request header host regex class bbb
+第三个类映射结束
+过滤了
+创建了一个名称是p-aaa ,类型是识别 "http" 流量的 策略映射，并进入里面
+ASA(config)# policy-map  type inspect 识别类型(http) 名字(p-aaa)
+ASA(config-pmap)#
+将刚刚创建的ccc 这个类映射调用到当前的策略映射,并进入里面
+ASA(config-pmap)# class 名字(ccc)
+ASA(config-pmap-c)#
+对刚刚识别的流量做关闭连接并记录在日志中
+ASA(config-pmap-c)# drop-connection log
+退出，第一个策略映射完成
+创建名称是“p-bbb " 的策略映射
+ASA(config)# policy-map 名字(p-bbb)
+调用之前创建的“a1”这个类映射，并进入里面
+ASA(config-pmap)# class a1
+检查http 流量，把第一个策略映射带入当前这个策略映射
+ASA(config-pmap-c)# inspect 检查流量类型(http) 策略名字(p-aaa)
+退出，第二个策略映射结束
+将最终的策略映射 p-bbb  用在ASA的inside 接口上
+ASA(config)# service-policy 决策的名字(p-bbb) interface (内网接口)inside  (注：一个接口只能用一个 policy-map)
